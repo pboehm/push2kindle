@@ -1,0 +1,11 @@
+push2kindle.pl - Tool welches Dateien komfortabel per Email an einen Kindle
+                 schicken kann. Momentan ist nur Support für Google Mail
+                 integriert.
+
+                 Möglichkeit zur Konfiguration besteht unter ~/.push2kindle
+
+Abhängigkeiten
+    Email::Send::Gmail
+    Email::Send
+    MIME::Lite
+    Archive::Zip
