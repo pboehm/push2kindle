@@ -37,7 +37,7 @@ use File::Path qw(remove_tree);
 chdir( dirname($0) );
 require ConfigFile;
 
-Readonly my $VERSION       => "0.0.1";
+Readonly my $VERSION       => "0.0.2";
 Readonly my $MAX_FILE_SIZE => 52428800;    # 50MB
 
 ################################################################################
@@ -73,7 +73,7 @@ GetOptions(
     "version" => sub { print $VERSION . "\n"; exit; },
     "verbose",
     "queuedirectory=s",
-    "to=s" => \@KINDLES,
+    "to=s"   => \@KINDLES,
     "file=s" => \@EXPLICIT_FILES,
 );
 
@@ -99,6 +99,15 @@ if ( scalar @KINDLES == 0 ) {
 
 die "Keine Email-Adressen gefunden, an die Daten verschickt werden könnten"
   if ( scalar @KINDLES < 1 );
+
+################################################################################
+################# Explizit angegebene Dateien einbeziehen ######################
+################################################################################
+for my $file (@EXPLICIT_FILES) {
+    next unless -f $file;
+    printf "Füge '%s' hinzu\n", $file;
+    copy( $file, $CONF{"queuedirectory"} );
+}
 
 ################################################################################
 ##### Dateien in Queue verarbeiten und für den Versand unterteilen #############
