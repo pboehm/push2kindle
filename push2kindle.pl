@@ -37,8 +37,9 @@ use File::Path qw(remove_tree);
 chdir( dirname($0) );
 require ConfigFile;
 
-Readonly my $VERSION       => "0.0.2";
-Readonly my $MAX_FILE_SIZE => 52428800;    # 50MB
+Readonly my $VERSION                 => "0.0.3";
+Readonly my $MAX_FILE_SIZE           => 52428800;    # 50MB
+Readonly my $MAX_FILE_COUNT_PER_MAIL => 20;
 
 ################################################################################
 ############### Konfiguration laden ############################################
@@ -75,6 +76,7 @@ GetOptions(
     "queuedirectory=s",
     "to=s"   => \@KINDLES,
     "file=s" => \@EXPLICIT_FILES,
+    "skipsending",
 );
 
 die "Sie müssen Ihre Gmail-Zugangsdaten angeben"
@@ -115,6 +117,7 @@ for my $file (@EXPLICIT_FILES) {
 chdir( $CONF{"queuedirectory"} );
 
 my $current_full_size     = 0;
+my $current_file_count    = 0;
 my $current_zip_directory = "transfer_" . time();
 
 opendir( my $DIR, "." ) or die "Konnte Verzeichnis nicht öffnen";
@@ -136,8 +139,11 @@ while ( my $file = readdir($DIR) ) {
 
     ######
     # Wenn aktuelle Datei den einen Ordner sprengen würde neuen anlegen
-    if ( ( $current_full_size + $file_size ) >= $MAX_FILE_SIZE ) {
-        $current_full_size = 0;
+    if ( ( ( $current_full_size + $file_size ) >= $MAX_FILE_SIZE )
+        || $current_file_count >= $MAX_FILE_COUNT_PER_MAIL )
+    {
+        $current_full_size  = 0;
+        $current_file_count = 0;
         sleep 1;
         $current_zip_directory = "transfer_" . time();
     }
@@ -149,6 +155,7 @@ while ( my $file = readdir($DIR) ) {
     move( $file, catfile( $current_zip_directory, $file ) )
       or die "Konnte Datei nicht in ZIP-Verzeichnis verschieben";
     $current_full_size += $file_size;
+    $current_file_count++;
 }
 close($DIR);
 
@@ -175,6 +182,8 @@ while ( my $directory = readdir($DIR) ) {
         remove_tree($directory);
     }
 }
+
+exit 0 if defined $PARAMS{"skipsending"};
 
 ################################################################################
 ######### Verbindung zu Server aufbauen und Dateien senden #####################
@@ -237,7 +246,8 @@ Usage: $0 [Optionen]
    --to=EMAIL-ADDRESS   : Adresse eines Kindles (kann öfters angegeben werden)
    --file=FILE          : Datei, außerhalb des Queue-Verzeichnis, wird ebenfalls
                           an den Kindle geschickt (kann öfters angegeben werden) 
-                   
+   --skipsending        : Versendet die verpackten Dateien nicht. 
+                          Nützlich zu Debugzwecken.                   
 EOF
     exit();
 }
